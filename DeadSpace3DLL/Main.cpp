@@ -90,7 +90,7 @@ DWORD WINAPI ConsoleThread(HMODULE hModule)
     &mpDxRasterizerState
   ));
 
-  pDxGraphicsMemory = new GraphicsMemory(pDxDevice, pDxDevice->Reso);
+  //pDxGraphicsMemory = new GraphicsMemory(pDxDevice, pDxDevice->Reso);
 
   pDxStates = new CommonStates(pDxDevice);
 
