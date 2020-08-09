@@ -70,8 +70,8 @@ HANDLE Inject(const char* pFileName, int pid)
 
 int main()
 {
-  const char* pFileName = "C:\\Users\\burmi\\Downloads\\Katana\\x64\\Debug\\DeadSpace3DLL.dll";
-  DWORD pid = FindProcessId("DemoProcess.exe");
+  const char* pFileName = "C:\\Users\\Michael\\Downloads\\Katana\\Debug\\DeadSpace3DLL.dll";
+  DWORD pid = FindProcessId("deadspace3.exe");
 
   return (bool)Inject(pFileName, pid);
 }

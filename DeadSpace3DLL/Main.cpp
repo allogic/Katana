@@ -27,8 +27,8 @@ DWORD WINAPI ConsoleThread(HMODULE hModule)
   freopen("CONOUT$", "w", stdout);
 
   DWORD pid = GetCurrentProcessId();
-  //HWND hwnd = FindWindowExA(nullptr, nullptr, "DeadSpace3WndClass", "Dead Space™ 3");
-  HWND hwnd = FindWindowExA(nullptr, nullptr, "DemoWindowWndClass", "DemoWindow");
+  HWND hwnd = FindWindowExA(nullptr, nullptr, "DeadSpace3WndClass", "Dead Space™ 3");
+  //HWND hwnd = FindWindowExA(nullptr, nullptr, "DemoWindowWndClass", "DemoWindow");
   DWORD threadId = GetWindowThreadProcessId(hwnd, &pid);
 
   printf("Pid[%d]\n", pid);
@@ -53,16 +53,18 @@ DWORD WINAPI ConsoleThread(HMODULE hModule)
   DXGI_MODE_DESC dxBufferModeDesc {};
   dxBufferModeDesc.Width = width;
   dxBufferModeDesc.Height = height;
-  dxBufferModeDesc.RefreshRate = DXGI_RATIONAL { 60, 1 };
-  dxBufferModeDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R32G32B32A32_FLOAT;
+  dxBufferModeDesc.RefreshRate = DXGI_RATIONAL { 120, 1 };
+  dxBufferModeDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM;
   dxBufferModeDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER::DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
   dxBufferModeDesc.Scaling = DXGI_MODE_SCALING::DXGI_MODE_SCALING_UNSPECIFIED;
+
+  //Error[0x80070057]D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE::D3D_DRIVER_TYPE_HARDWARE, nullptr, 0, pDxFeatures, 1, (7), &dxSwapChainDesc, &pDxSwapChain, &pDxDevice, &dxFeature, &pDxContext)
 
   DXGI_SWAP_CHAIN_DESC dxSwapChainDesc {};
   dxSwapChainDesc.BufferDesc = dxBufferModeDesc;
   dxSwapChainDesc.SampleDesc = DXGI_SAMPLE_DESC{ 1, 0 };
   dxSwapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-  dxSwapChainDesc.BufferCount = 1;
+  dxSwapChainDesc.BufferCount = 2; // reset me
   dxSwapChainDesc.OutputWindow = hwnd;
   dxSwapChainDesc.Windowed = 1;
   dxSwapChainDesc.SwapEffect = DXGI_SWAP_EFFECT::DXGI_SWAP_EFFECT_DISCARD;
@@ -73,7 +75,7 @@ DWORD WINAPI ConsoleThread(HMODULE hModule)
   dxRenderTextureDesc2D.Height = height;
   dxRenderTextureDesc2D.MipLevels = 1;
   dxRenderTextureDesc2D.ArraySize = 1;
-  dxRenderTextureDesc2D.Format = DXGI_FORMAT::DXGI_FORMAT_R32G32B32A32_FLOAT;
+  dxRenderTextureDesc2D.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM;
   dxRenderTextureDesc2D.SampleDesc = DXGI_SAMPLE_DESC { 1, 0 };
   dxRenderTextureDesc2D.Usage = D3D11_USAGE::D3D11_USAGE_DEFAULT;
   dxRenderTextureDesc2D.BindFlags =
@@ -108,9 +110,11 @@ DWORD WINAPI ConsoleThread(HMODULE hModule)
     &dxFeature,
     &pDxContext
   ));
+
   TRACE_IF(pDxSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&pDxBackBufferTexture2D));
+
   TRACE_IF(pDxDevice->CreateTexture2D(&dxRenderTextureDesc2D, nullptr, &pDxRenderTexture2D));
-  TRACE_IF(pDxDevice->CreateRenderTargetView(pDxBackBufferTexture2D, nullptr, &pDxRenderTargetView2D));
+  TRACE_IF(pDxDevice->CreateRenderTargetView(pDxRenderTexture2D, nullptr, &pDxRenderTargetView2D));
 
   pDxStates = new CommonStates(pDxDevice);
   
@@ -134,31 +138,22 @@ DWORD WINAPI ConsoleThread(HMODULE hModule)
 
   world = Matrix::Identity;
   view = Matrix::CreateLookAt(-Vector3::UnitZ, Vector3::Zero, Vector3::UnitY);
-  proj = Matrix::CreateOrthographicOffCenter(-0.5f, 0.5f, -0.5f, 0.5f, 0.0001f, 1.f);
-  //proj = Matrix::CreatePerspectiveFieldOfView(
-  //  XM_PI / 4.f,
-  //  float(width) / float(height),
-  //  0.1f, 10.f
-  //);
-
-  //pDxContext->OMSetBlendState(pDxStates->Opaque(), nullptr, 0xFFFFFFFF);
-  //pDxContext->OMSetDepthStencilState(pDxStates->DepthNone(), 0);
-
-  //pDxContext->RSSetState(pDxStates->CullNone());
-
-  //Error[0x80070057]D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE::D3D_DRIVER_TYPE_HARDWARE, nullptr, 0, pDxFeatures, 1, (7), &dxSwapChainDesc, &pDxSwapChain, &pDxDevice, &dxFeature, &pDxContext)
-
-  pDxEffect->SetView(view);
-  pDxEffect->SetProjection(proj);
-  pDxEffect->SetWorld(world);
-  
-  pDxEffect->Apply(pDxContext);
-
-  pDxContext->IASetInputLayout(pDxInputLayout);
+  //proj = Matrix::CreateOrthographicOffCenter(-0.5f, 0.5f, -0.5f, 0.5f, 0.001f, 1.f);
+  proj = Matrix::CreatePerspectiveFieldOfView(
+    XM_PI / 4.f,
+    float(width) / float(height),
+    0.001f, 1.f
+  );
 
   while (true)
   {
-    float clearColor[4] { 1.f, 0.f, 0.f, 1.f };
+    pDxContext->OMSetBlendState(pDxStates->Opaque(), nullptr, 0xFFFFFFFF);
+    pDxContext->OMSetDepthStencilState(pDxStates->DepthNone(), 0);
+
+    pDxContext->RSSetState(pDxStates->CullNone());
+    pDxContext->IASetInputLayout(pDxInputLayout);
+
+    float clearColor[4] { 0.f, 0.f, 0.f, 0.f };
 
     pDxContext->ClearRenderTargetView(pDxRenderTargetView2D, clearColor);
     pDxContext->ClearDepthStencilView(
@@ -170,20 +165,25 @@ DWORD WINAPI ConsoleThread(HMODULE hModule)
 
     pDxContext->OMSetRenderTargets(1, &pDxRenderTargetView2D, pDxDepthStencilView2D);
 
-    //CD3D11_VIEWPORT viewPort(0.0f, 0.0f,
-    //  (float)width, (float)height);
-    //pDxContext->RSSetViewports(1, &viewPort);
-    //
-    //pDxBatch->Begin();
-    //
-    //pDxBatch->DrawLine(
-    //  VertexPositionColor(XMFLOAT3(-0.5f, 0.f, 0.f), XMFLOAT4(1.f, 0.f, 0.f, 1.f)),
-    //  VertexPositionColor(XMFLOAT3(0.5f, -0.5f, 0.f), XMFLOAT4(1.f, 0.f, 0.f, 1.f))
-    //);
-    //
-    //pDxBatch->End();
+    CD3D11_VIEWPORT viewPort(0.f, 0.f, (float)width, (float)height);
+    pDxContext->RSSetViewports(1, &viewPort);
 
-    //pDxContext->RSSetState(pDxStates->CullNone());
+    pDxEffect->SetView(view);
+    pDxEffect->SetProjection(proj);
+    pDxEffect->SetWorld(world);
+
+    pDxEffect->Apply(pDxContext);
+
+    pDxBatch->Begin();
+    
+    pDxBatch->DrawLine(
+      VertexPositionColor(XMFLOAT3(-0.5f, 0.f, 0.f), XMFLOAT4(1.f, 0.f, 0.f, 1.f)),
+      VertexPositionColor(XMFLOAT3(0.5f, -0.5f, 0.f), XMFLOAT4(1.f, 0.f, 0.f, 1.f))
+    );
+    
+    pDxBatch->End();
+
+    pDxSwapChain->Present(0, 0);
   }
 
   return 0;
